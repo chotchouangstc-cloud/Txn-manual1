@@ -47,23 +47,63 @@
                     <i class="fa-solid fa-camera-retro text-xl"></i>
                 </div>
                 <div>
-                    <h1 class="text-xl font-bold tracking-wide">ระบบแกะข้อมูลผ่านทางจากภาพ (BY หน่องไอซ์)</h1>
-                    <p class="text-xs text-slate-400">วางภาพ (Ctrl+V) เพื่อแยกข้อมูลลงตาราง 10 ช่อง (1 รูป = 1 รายการ) สำหรับคัดลอกลง Excel / Sheet</p>
+                    <div class="flex items-center gap-2">
+                        <h1 class="text-xl font-bold tracking-wide">ระบบแกะข้อมูลผ่านทางจากภาพ (AI OCR)</h1>
+                        <span class="px-2 py-0.5 text-[11px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 rounded-full">Standalone Ready</span>
+                    </div>
+                    <p class="text-xs text-slate-400">วางภาพ (Ctrl+V) แยกข้อมูล 10 ช่อง (1 รูป = 1 รายการ) • พร้อมใช้งานภายนอกได้ทันที</p>
                 </div>
             </div>
             <div class="flex flex-wrap items-center gap-2">
-                <button onclick="downloadStandaloneHTML()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3.5 py-2 rounded-lg text-sm font-bold transition flex items-center gap-2 shadow-sm">
+                <button onclick="downloadStandaloneHtml()" class="bg-emerald-600 hover:bg-emerald-500 text-white px-3.5 py-2 rounded-lg text-sm font-bold transition flex items-center gap-2 shadow-md border border-emerald-400/30">
                     <i class="fa-solid fa-download"></i> ดาวน์โหลดไฟล์ .html (นำไปใช้ข้างนอก)
                 </button>
-                <button onclick="clearCurrentData()" class="bg-rose-600 hover:bg-rose-700 text-white px-3 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2 shadow-sm">
-                    <i class="fa-solid fa-rotate-right"></i> ล้างข้อมูล / รอรับรูปใหม่
+                <button onclick="clearCurrentData()" class="bg-rose-600 hover:bg-rose-700 text-white px-3 py-2 rounded-lg text-sm font-medium transition flex items-center gap-1.5 shadow-sm">
+                    <i class="fa-solid fa-rotate-right"></i> ล้างข้อมูล
                 </button>
-                <button onclick="loadDemoData()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 px-3 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2">
-                    <i class="fa-solid fa-vial text-blue-400"></i> ทดลองข้อมูลตัวอย่าง
+                <button onclick="loadDemoData()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 px-3 py-2 rounded-lg text-sm font-medium transition flex items-center gap-1.5">
+                    <i class="fa-solid fa-vial text-blue-400"></i> ตัวอย่าง
                 </button>
-                <button onclick="openSettingsModal()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 px-3 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2">
-                    <i class="fa-solid fa-sliders text-amber-400"></i> ตั้งค่ารูปแบบข้อมูล
+                <button onclick="openSettingsModal()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 px-3 py-2 rounded-lg text-sm font-medium transition flex items-center gap-1.5">
+                    <i class="fa-solid fa-sliders text-amber-400"></i> ตั้งค่าช่อง
                 </button>
+            </div>
+        </div>
+
+        <!-- Standalone API Key & Model Bar -->
+        <div class="bg-slate-800/90 border-t border-slate-700/80">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2.5 flex flex-wrap items-center justify-between gap-3 text-xs">
+                <div class="flex flex-wrap items-center gap-2 flex-1 min-w-[280px]">
+                    <span id="apiKeyStatusBadge" class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                        <i class="fa-solid fa-key"></i> API Key พร้อมใช้งาน
+                    </span>
+                    <div class="relative flex-1 max-w-md flex items-center">
+                        <input type="password" id="apiKeyInput" value="AQ.Ab8RN6JJMGu0Qg8OfpOQ48KCep7VvDaAjTxSUKIMaAh19cJpyw" oninput="handleApiKeyChange()" placeholder="วางรหัส Gemini API Key (AQ... หรือ AIza...)" class="w-full pl-3 pr-20 py-1.5 bg-slate-900/90 border border-slate-600 rounded-lg text-slate-200 font-mono text-xs focus:outline-none focus:border-blue-400">
+                        <div class="absolute right-1.5 flex items-center gap-1">
+                            <button type="button" onclick="toggleApiKeyVisibility()" class="px-1.5 py-0.5 text-slate-400 hover:text-white rounded" title="แสดง/ซ่อน API Key">
+                                <i id="eyeIcon" class="fa-regular fa-eye"></i>
+                            </button>
+                            <button type="button" onclick="resetDefaultApiKey()" class="px-1.5 py-0.5 text-slate-400 hover:text-amber-300 rounded" title="คืนค่าคีย์เริ่มต้น">
+                                <i class="fa-solid fa-rotate-left"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <button onclick="saveApiKeyManual()" class="px-2.5 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-medium transition">
+                        บันทึกคีย์
+                    </button>
+                </div>
+
+                <div class="flex flex-wrap items-center gap-2">
+                    <label for="modelSelect" class="text-slate-300 font-medium flex items-center gap-1">
+                        <i class="fa-solid fa-microchip text-blue-400"></i> โมเดล AI:
+                    </label>
+                    <select id="modelSelect" onchange="handleModelChange()" class="bg-slate-900 border border-slate-600 text-slate-200 rounded-lg px-2.5 py-1.5 text-xs font-medium focus:outline-none focus:border-blue-400">
+                        <option value="gemini-2.5-flash" selected>gemini-2.5-flash (แนะนำ/เสถียร)</option>
+                        <option value="gemini-3-flash-preview">gemini-3-flash-preview (เร็ว/ใหม่ล่าสุด)</option>
+                        <option value="gemini-2.0-flash">gemini-2.0-flash (สำรอง 1)</option>
+                        <option value="gemini-1.5-flash">gemini-1.5-flash (สำรอง 2)</option>
+                    </select>
+                </div>
             </div>
         </div>
     </header>
@@ -123,72 +163,72 @@
                     <!-- 10 Fields Grid -->
                     <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-3 text-sm">
                         <div>
-                            <div class="flex items-center justify-between mb-1">
+                            <div class="flex justify-between items-center mb-1">
                                 <label class="block text-xs font-semibold text-slate-500">1. หมวดทะเบียน</label>
-                                <button onclick="copySingleField(1)" title="คัดลอกช่องที่ 1" class="text-xs text-blue-600 hover:text-blue-800"><i class="fa-regular fa-copy"></i></button>
+                                <button onclick="copySingleField(1)" class="text-[11px] text-blue-600 hover:underline" title="คัดลอกเฉพาะช่องที่ 1"><i class="fa-regular fa-copy"></i> คัดลอก</button>
                             </div>
                             <input type="text" id="field_1" oninput="syncSingleRowFromInputs()" placeholder="เช่น 3ฒล 2850 กรุงเทพมหานคร" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none font-bold text-slate-800">
                         </div>
                         <div>
-                            <div class="flex items-center justify-between mb-1">
+                            <div class="flex justify-between items-center mb-1">
                                 <label class="block text-xs font-semibold text-slate-500">2. ตรวจสอบรายการฯ</label>
-                                <button onclick="copySingleField(2)" title="คัดลอกช่องที่ 2" class="text-xs text-blue-600 hover:text-blue-800"><i class="fa-regular fa-copy"></i></button>
+                                <button onclick="copySingleField(2)" class="text-[11px] text-blue-600 hover:underline"><i class="fa-regular fa-copy"></i></button>
                             </div>
                             <input type="text" id="field_2" oninput="syncSingleRowFromInputs()" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none text-slate-700">
                         </div>
                         <div>
-                            <div class="flex items-center justify-between mb-1">
+                            <div class="flex justify-between items-center mb-1">
                                 <label class="block text-xs font-semibold text-slate-500">3. ด่าน (ตัวย่อ)</label>
-                                <button onclick="copySingleField(3)" title="คัดลอกช่องที่ 3" class="text-xs text-blue-600 hover:text-blue-800"><i class="fa-regular fa-copy"></i></button>
+                                <button onclick="copySingleField(3)" class="text-[11px] text-blue-600 hover:underline"><i class="fa-regular fa-copy"></i></button>
                             </div>
                             <input type="text" id="field_3" oninput="syncSingleRowFromInputs()" placeholder="TC1, TC2, TY1, TY2" class="w-full px-3 py-2 bg-blue-50/60 border border-blue-300 rounded-lg focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none font-bold text-blue-700">
                         </div>
                         <div>
-                            <div class="flex items-center justify-between mb-1">
+                            <div class="flex justify-between items-center mb-1">
                                 <label class="block text-xs font-semibold text-slate-500">4. วัน เวลา</label>
-                                <button onclick="copySingleField(4)" title="คัดลอกช่องที่ 4" class="text-xs text-blue-600 hover:text-blue-800"><i class="fa-regular fa-copy"></i></button>
+                                <button onclick="copySingleField(4)" class="text-[11px] text-blue-600 hover:underline"><i class="fa-regular fa-copy"></i></button>
                             </div>
                             <input type="text" id="field_4" oninput="syncSingleRowFromInputs()" placeholder="29/10/2026 00:07:59" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none font-medium text-slate-800">
                         </div>
                         <div>
-                            <div class="flex items-center justify-between mb-1">
-                                <label class="block text-xs font-semibold text-amber-600">5. สูตร TEXT (แทรกใหม่)</label>
-                                <button onclick="copySingleField(5)" title="คัดลอกช่องที่ 5" class="text-xs text-amber-600 hover:text-amber-800"><i class="fa-regular fa-copy"></i></button>
+                            <div class="flex justify-between items-center mb-1">
+                                <label class="block text-xs font-semibold text-amber-600">5. สูตรเดือน (แก้ไขได้)</label>
+                                <button onclick="copySingleField(5)" class="text-[11px] text-amber-700 hover:underline"><i class="fa-regular fa-copy"></i></button>
                             </div>
                             <input type="text" id="field_5" oninput="syncSingleRowFromInputs()" class="w-full px-3 py-2 bg-amber-50/50 border border-amber-300 rounded-lg focus:bg-white focus:ring-2 focus:ring-amber-500 focus:outline-none font-mono text-xs text-slate-800">
                         </div>
                         <div>
-                            <div class="flex items-center justify-between mb-1">
+                            <div class="flex justify-between items-center mb-1">
                                 <label class="block text-xs font-semibold text-slate-500">6. ค่าคงที่ (00 0000 -)</label>
-                                <button onclick="copySingleField(6)" title="คัดลอกช่องที่ 6" class="text-xs text-blue-600 hover:text-blue-800"><i class="fa-regular fa-copy"></i></button>
+                                <button onclick="copySingleField(6)" class="text-[11px] text-blue-600 hover:underline"><i class="fa-regular fa-copy"></i></button>
                             </div>
                             <input type="text" id="field_6" oninput="syncSingleRowFromInputs()" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none font-mono text-slate-700">
                         </div>
                         <div>
-                            <div class="flex items-center justify-between mb-1">
+                            <div class="flex justify-between items-center mb-1">
                                 <label class="block text-xs font-semibold text-slate-500">7. ตรวจสอบผิดกฎหมาย</label>
-                                <button onclick="copySingleField(7)" title="คัดลอกช่องที่ 7" class="text-xs text-blue-600 hover:text-blue-800"><i class="fa-regular fa-copy"></i></button>
+                                <button onclick="copySingleField(7)" class="text-[11px] text-blue-600 hover:underline"><i class="fa-regular fa-copy"></i></button>
                             </div>
                             <input type="text" id="field_7" oninput="syncSingleRowFromInputs()" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none text-slate-700">
                         </div>
                         <div>
-                            <div class="flex items-center justify-between mb-1">
+                            <div class="flex justify-between items-center mb-1">
                                 <label class="block text-xs font-semibold text-slate-500">8. Ref Trip Id</label>
-                                <button onclick="copySingleField(8)" title="คัดลอกช่องที่ 8" class="text-xs text-blue-600 hover:text-blue-800"><i class="fa-regular fa-copy"></i></button>
+                                <button onclick="copySingleField(8)" class="text-[11px] text-blue-600 hover:underline"><i class="fa-regular fa-copy"></i> คัดลอก</button>
                             </div>
                             <input type="text" id="field_8" oninput="syncSingleRowFromInputs()" placeholder="543212026..." class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none font-mono text-xs text-slate-800">
                         </div>
                         <div>
-                            <div class="flex items-center justify-between mb-1">
+                            <div class="flex justify-between items-center mb-1">
                                 <label class="block text-xs font-semibold text-slate-500">9. สร้างรถจี้ท้ายจาก CCTV</label>
-                                <button onclick="copySingleField(9)" title="คัดลอกช่องที่ 9" class="text-xs text-blue-600 hover:text-blue-800"><i class="fa-regular fa-copy"></i></button>
+                                <button onclick="copySingleField(9)" class="text-[11px] text-blue-600 hover:underline"><i class="fa-regular fa-copy"></i></button>
                             </div>
                             <input type="text" id="field_9" oninput="syncSingleRowFromInputs()" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none text-slate-700">
                         </div>
                         <div>
-                            <div class="flex items-center justify-between mb-1">
+                            <div class="flex justify-between items-center mb-1">
                                 <label class="block text-xs font-semibold text-slate-500">10. ยิงpostmanเท่านั้น</label>
-                                <button onclick="copySingleField(10)" title="คัดลอกช่องที่ 10" class="text-xs text-blue-600 hover:text-blue-800"><i class="fa-regular fa-copy"></i></button>
+                                <button onclick="copySingleField(10)" class="text-[11px] text-blue-600 hover:underline"><i class="fa-regular fa-copy"></i></button>
                             </div>
                             <input type="text" id="field_10" oninput="syncSingleRowFromInputs()" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none text-slate-700">
                         </div>
@@ -355,13 +395,10 @@
     </div>
 
     <script>
-        // --- Hidden Background API Key Configuration (No UI Exposure) ---
-        const EMBEDDED_API_KEY = "AQ.Ab8RN6JJMGu0Qg8OfpOQ48KCep7VvDaAjTxSUKIMaAh19cJpyw";
-        const FALLBACK_MODELS = [
-            "gemini-2.5-flash",
-            "gemini-3-flash-preview",
-            "gemini-2.0-flash"
-        ];
+        // --- Standalone API Key & Model Configuration ---
+        const DEFAULT_USER_API_KEY = "AQ.Ab8RN6JJMGu0Qg8OfpOQ48KCep7VvDaAjTxSUKIMaAh19cJpyw";
+        const STORAGE_KEY_API = "toll_ocr_gemini_api_key";
+        const STORAGE_KEY_MODEL = "toll_ocr_gemini_model";
 
         // --- State Management (Single Row per Image Paste) ---
         let currentRecord = null; // Holds only the current active record { cols: [...10], raw: {...} }
@@ -598,6 +635,9 @@
             rawBadge.textContent = 'กำลังวิเคราะห์ภาพใหม่...';
             rawBadge.className = 'text-xs px-2.5 py-1 bg-amber-100 text-amber-800 rounded-md font-medium';
 
+            const userApiKey = getActiveApiKey();
+            const selectedModel = document.getElementById('modelSelect')?.value || 'gemini-2.5-flash';
+
             const promptText = `คุณคือระบบ OCR ความแม่นยำสูงสำหรับอ่านหน้าจอระบบตรวจสอบรายการผ่านทาง (ป้ายปกติ / ด่านเก็บเงิน)
 กรุณาอ่านข้อมูลตัวอักษรจากภาพที่แนบมานี้ แล้วแยกข้อมูลออกมาเป็น JSON ตามโครงสร้างดังนี้:
 - platePrefix: หมวดอักษร (เช่น "3ฒล")
@@ -657,7 +697,7 @@
             };
 
             try {
-                const result = await callGeminiWithModelFallback(payload);
+                const result = await callGeminiVisionWithFallback(selectedModel, userApiKey, payload);
                 const jsonText = result?.candidates?.[0]?.content?.parts?.[0]?.text;
                 if (!jsonText) {
                     throw new Error("ไม่สามารถอ่านข้อมูลจากภาพได้");
@@ -670,63 +710,63 @@
                 console.error(err);
                 rawBadge.textContent = 'เกิดข้อผิดพลาดในการอ่านภาพ';
                 rawBadge.className = 'text-xs px-2.5 py-1 bg-rose-100 text-rose-700 rounded-md font-medium';
-                showToast('ไม่สามารถแกะข้อมูลจากภาพได้ กรุณาวางภาพใหม่อีกครั้ง', 'error');
+                showToast(`ไม่สามารถแกะข้อมูลได้: ${err.message || 'กรุณาตรวจสอบ API Key หรือเปลี่ยนโมเดล'}`, 'error');
             } finally {
                 loadingOverlay.classList.add('hidden');
             }
         }
 
-        // Model fallback + AQ. key support (Query string + x-goog-api-key header + empty key fallback in Canvas)
-        async function callGeminiWithModelFallback(payload) {
-            const keyCandidates = [EMBEDDED_API_KEY, ""];
+        // Supports user's AQ. / AIza key directly, with automatic model fallback and Canvas runtime fallback
+        async function callGeminiVisionWithFallback(primaryModel, apiKey, payload) {
+            const candidateModels = [
+                primaryModel,
+                'gemini-2.5-flash',
+                'gemini-3-flash-preview',
+                'gemini-2.0-flash'
+            ].filter((v, i, a) => v && a.indexOf(v) === i);
+
             let lastError = null;
 
-            for (const activeKey of keyCandidates) {
-                for (const modelName of FALLBACK_MODELS) {
-                    const baseUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent`;
-                    const url = activeKey ? `${baseUrl}?key=${encodeURIComponent(activeKey)}` : `${baseUrl}?key=`;
-
-                    const headers = { 'Content-Type': 'application/json' };
-                    if (activeKey) {
-                        headers['x-goog-api-key'] = activeKey;
-                    }
-
+            // 1. Try with user's API key across candidate models
+            if (apiKey) {
+                for (const model of candidateModels) {
+                    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`;
                     try {
-                        const result = await fetchWithBackoff(url, payload, headers, 2);
-                        if (result && result.candidates) {
-                            return result;
+                        const response = await fetch(url, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'x-goog-api-key': apiKey
+                            },
+                            body: JSON.stringify(payload)
+                        });
+                        if (response.ok) {
+                            return await response.json();
+                        } else {
+                            const errBody = await response.json().catch(() => ({}));
+                            lastError = new Error(errBody?.error?.message || `HTTP ${response.status}`);
                         }
                     } catch (err) {
                         lastError = err;
                     }
                 }
             }
-            throw lastError || new Error("All models failed");
-        }
 
-        // Exponential backoff helper
-        async function fetchWithBackoff(url, payload, headers, retries = 2) {
-            let delay = 800;
-            for (let i = 0; i < retries; i++) {
-                try {
-                    const response = await fetch(url, {
-                        method: 'POST',
-                        headers: headers || { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(payload)
-                    });
-                    if (response.ok) {
-                        return await response.json();
-                    }
-                    if (response.status === 400 || response.status === 401 || response.status === 403 || response.status === 404) {
-                        break; // Switch to next model/key immediately on client/auth/model error
-                    }
-                } catch (e) {
-                    // Retry silently
+            // 2. Fallback for Canvas preview environment if empty-key runtime injection is active
+            const canvasFallbackKey = "";
+            const canvasUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${canvasFallbackKey}`;
+            try {
+                const response = await fetch(canvasUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                if (response.ok) {
+                    return await response.json();
                 }
-                await new Promise(r => setTimeout(r, delay));
-                delay *= 2;
-            }
-            throw new Error("API request failed");
+            } catch (e) {}
+
+            throw lastError || new Error("API request failed");
         }
 
         // --- Format & Populate Data into the 10 Columns ---
@@ -980,29 +1020,6 @@
 
             lines.push(cols.join('\t'));
             copyTextToClipboard(lines.join('\n'), 'คัดลอกทั้ง 10 ช่องแล้ว! นำไปกด Ctrl+V ใน Excel ได้เลย');
-        }
-
-        function copySingleField(fieldIndex) {
-            const val = document.getElementById(`field_${fieldIndex}`).value;
-            if (!val) {
-                showToast(`ช่องที่ ${fieldIndex} ยังไม่มีข้อมูล`, 'info');
-                return;
-            }
-            copyTextToClipboard(val, `คัดลอกช่องที่ ${fieldIndex} (${val}) แล้ว!`);
-        }
-
-        function downloadStandaloneHTML() {
-            const htmlContent = '<!DOCTYPE html>\n' + document.documentElement.outerHTML;
-            const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'Toll_OCR_Extractor.html';
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-            showToast('ดาวน์โหลดไฟล์ Toll_OCR_Extractor.html เรียบร้อยแล้ว!', 'success');
         }
 
         // --- Settings Modal ---
