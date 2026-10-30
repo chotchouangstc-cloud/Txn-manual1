@@ -1,0 +1,1088 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ระบบแกะข้อมูลรายการผ่านทางจากภาพ (AI OCR)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            font-family: 'Sarabun', sans-serif;
+            background-color: #f1f5f9;
+        }
+        .paste-zone {
+            border: 2px dashed #94a3b8;
+            transition: all 0.2s ease;
+        }
+        .paste-zone:hover, .paste-zone.dragover {
+            border-color: #2563eb;
+            background-color: #eff6ff;
+        }
+        /* Custom scrollbar for table */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+    </style>
+</head>
+<body class="min-h-screen text-slate-800 pb-12">
+
+    <!-- Navbar -->
+    <header class="bg-slate-900 text-white shadow-md sticky top-0 z-30">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex flex-wrap justify-between items-center gap-4">
+            <div class="flex items-center space-x-3">
+                <div class="bg-blue-600 p-2.5 rounded-xl shadow-inner">
+                    <i class="fa-solid fa-camera-retro text-xl"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold tracking-wide">ระบบแกะข้อมูลผ่านทางจากภาพ (BY หน่องไอซ์)</h1>
+                    <p class="text-xs text-slate-400">วางภาพ (Ctrl+V) เพื่อแยกข้อมูลลงตาราง 10 ช่อง (1 รูป = 1 รายการ) สำหรับคัดลอกลง Excel / Sheet</p>
+                </div>
+            </div>
+            <div class="flex flex-wrap items-center gap-2">
+                <button onclick="downloadStandaloneHTML()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3.5 py-2 rounded-lg text-sm font-bold transition flex items-center gap-2 shadow-sm">
+                    <i class="fa-solid fa-download"></i> ดาวน์โหลดไฟล์ .html (นำไปใช้ข้างนอก)
+                </button>
+                <button onclick="clearCurrentData()" class="bg-rose-600 hover:bg-rose-700 text-white px-3 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2 shadow-sm">
+                    <i class="fa-solid fa-rotate-right"></i> ล้างข้อมูล / รอรับรูปใหม่
+                </button>
+                <button onclick="loadDemoData()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 px-3 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2">
+                    <i class="fa-solid fa-vial text-blue-400"></i> ทดลองข้อมูลตัวอย่าง
+                </button>
+                <button onclick="openSettingsModal()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 px-3 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2">
+                    <i class="fa-solid fa-sliders text-amber-400"></i> ตั้งค่ารูปแบบข้อมูล
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6 space-y-6">
+
+        <!-- Top Section: Upload / Paste & Preview -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            
+            <!-- Drop / Paste Zone -->
+            <div class="lg:col-span-4 flex flex-col">
+                <div id="dropZone" onclick="document.getElementById('fileInput').click()" class="paste-zone bg-white rounded-2xl p-6 flex-1 flex flex-col items-center justify-center text-center cursor-pointer shadow-sm min-h-[280px] relative overflow-hidden group">
+                    <input type="file" id="fileInput" accept="image/*" class="hidden" onchange="handleFileSelect(event)">
+                    
+                    <div id="uploadPrompt" class="space-y-3 py-4">
+                        <div class="w-16 h-16 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center mx-auto group-hover:scale-110 transition-transform shadow-sm">
+                            <i class="fa-solid fa-paste text-2xl"></i>
+                        </div>
+                        <div>
+                            <p class="text-base font-bold text-slate-700">กด <kbd class="px-2 py-1 bg-slate-100 border border-slate-300 rounded text-sm font-mono text-blue-600">Ctrl + V</kbd> เพื่อวางภาพใหม่</p>
+                            <p class="text-sm text-slate-500 mt-1">วางรูปใหม่ทุกครั้งเพื่อเริ่มรายการใหม่ (ทับรายการเดิมอัตโนมัติ)</p>
+                        </div>
+                        <div class="pt-2">
+                            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                <i class="fa-solid fa-bolt"></i> แปลงด่านเป็น TC1, TC2, TY1, TY2 อัตโนมัติ
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- Image Preview inside Box -->
+                    <div id="previewContainer" class="hidden w-full h-full flex flex-col items-center justify-center">
+                        <img id="imagePreview" src="" alt="Preview" class="max-h-[210px] w-auto object-contain rounded-lg border border-slate-200 shadow-sm mb-2">
+                        <span class="text-xs text-blue-600 font-semibold bg-blue-50 px-3 py-1 rounded-full border border-blue-200 hover:bg-blue-100 transition"><i class="fa-solid fa-rotate mr-1"></i>กด Ctrl+V วางรูปใหม่เพื่อทำรายการถัดไป</span>
+                    </div>
+
+                    <!-- Loading Overlay -->
+                    <div id="loadingOverlay" class="hidden absolute inset-0 bg-slate-900/75 backdrop-blur-sm flex flex-col items-center justify-center text-white z-20 p-4">
+                        <div class="w-12 h-12 border-4 border-blue-400 border-t-transparent rounded-full animate-spin mb-3"></div>
+                        <p class="font-semibold text-base animate-pulse">กำลังแกะตัวอักษรจากภาพด้วย AI...</p>
+                        <p class="text-xs text-slate-300 mt-1">ระบบกำลังล้างข้อมูลเก่าและแยกข้อมูลชุดใหม่</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Single Item Editor (10 Columns) -->
+            <div class="lg:col-span-8 bg-white rounded-2xl shadow-sm border border-slate-200 p-5 flex flex-col justify-between">
+                <div>
+                    <div class="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
+                        <div class="flex items-center gap-2">
+                            <span class="w-2.5 h-2.5 rounded-full bg-blue-600"></span>
+                            <h2 class="font-bold text-slate-800 text-base">ข้อมูลรายการปัจจุบัน (10 ช่อง เรียงจากซ้ายไปขวา)</h2>
+                        </div>
+                        <span id="rawBadge" class="text-xs px-2.5 py-1 bg-slate-100 text-slate-600 rounded-md font-medium">รอวางรูปภาพ (Ctrl+V)...</span>
+                    </div>
+
+                    <!-- 10 Fields Grid -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-3 text-sm">
+                        <div>
+                            <div class="flex items-center justify-between mb-1">
+                                <label class="block text-xs font-semibold text-slate-500">1. หมวดทะเบียน</label>
+                                <button onclick="copySingleField(1)" title="คัดลอกช่องที่ 1" class="text-xs text-blue-600 hover:text-blue-800"><i class="fa-regular fa-copy"></i></button>
+                            </div>
+                            <input type="text" id="field_1" oninput="syncSingleRowFromInputs()" placeholder="เช่น 3ฒล 2850 กรุงเทพมหานคร" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none font-bold text-slate-800">
+                        </div>
+                        <div>
+                            <div class="flex items-center justify-between mb-1">
+                                <label class="block text-xs font-semibold text-slate-500">2. ตรวจสอบรายการฯ</label>
+                                <button onclick="copySingleField(2)" title="คัดลอกช่องที่ 2" class="text-xs text-blue-600 hover:text-blue-800"><i class="fa-regular fa-copy"></i></button>
+                            </div>
+                            <input type="text" id="field_2" oninput="syncSingleRowFromInputs()" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none text-slate-700">
+                        </div>
+                        <div>
+                            <div class="flex items-center justify-between mb-1">
+                                <label class="block text-xs font-semibold text-slate-500">3. ด่าน (ตัวย่อ)</label>
+                                <button onclick="copySingleField(3)" title="คัดลอกช่องที่ 3" class="text-xs text-blue-600 hover:text-blue-800"><i class="fa-regular fa-copy"></i></button>
+                            </div>
+                            <input type="text" id="field_3" oninput="syncSingleRowFromInputs()" placeholder="TC1, TC2, TY1, TY2" class="w-full px-3 py-2 bg-blue-50/60 border border-blue-300 rounded-lg focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none font-bold text-blue-700">
+                        </div>
+                        <div>
+                            <div class="flex items-center justify-between mb-1">
+                                <label class="block text-xs font-semibold text-slate-500">4. วัน เวลา</label>
+                                <button onclick="copySingleField(4)" title="คัดลอกช่องที่ 4" class="text-xs text-blue-600 hover:text-blue-800"><i class="fa-regular fa-copy"></i></button>
+                            </div>
+                            <input type="text" id="field_4" oninput="syncSingleRowFromInputs()" placeholder="29/10/2026 00:07:59" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none font-medium text-slate-800">
+                        </div>
+                        <div>
+                            <div class="flex items-center justify-between mb-1">
+                                <label class="block text-xs font-semibold text-amber-600">5. สูตร TEXT (แทรกใหม่)</label>
+                                <button onclick="copySingleField(5)" title="คัดลอกช่องที่ 5" class="text-xs text-amber-600 hover:text-amber-800"><i class="fa-regular fa-copy"></i></button>
+                            </div>
+                            <input type="text" id="field_5" oninput="syncSingleRowFromInputs()" class="w-full px-3 py-2 bg-amber-50/50 border border-amber-300 rounded-lg focus:bg-white focus:ring-2 focus:ring-amber-500 focus:outline-none font-mono text-xs text-slate-800">
+                        </div>
+                        <div>
+                            <div class="flex items-center justify-between mb-1">
+                                <label class="block text-xs font-semibold text-slate-500">6. ค่าคงที่ (00 0000 -)</label>
+                                <button onclick="copySingleField(6)" title="คัดลอกช่องที่ 6" class="text-xs text-blue-600 hover:text-blue-800"><i class="fa-regular fa-copy"></i></button>
+                            </div>
+                            <input type="text" id="field_6" oninput="syncSingleRowFromInputs()" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none font-mono text-slate-700">
+                        </div>
+                        <div>
+                            <div class="flex items-center justify-between mb-1">
+                                <label class="block text-xs font-semibold text-slate-500">7. ตรวจสอบผิดกฎหมาย</label>
+                                <button onclick="copySingleField(7)" title="คัดลอกช่องที่ 7" class="text-xs text-blue-600 hover:text-blue-800"><i class="fa-regular fa-copy"></i></button>
+                            </div>
+                            <input type="text" id="field_7" oninput="syncSingleRowFromInputs()" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none text-slate-700">
+                        </div>
+                        <div>
+                            <div class="flex items-center justify-between mb-1">
+                                <label class="block text-xs font-semibold text-slate-500">8. Ref Trip Id</label>
+                                <button onclick="copySingleField(8)" title="คัดลอกช่องที่ 8" class="text-xs text-blue-600 hover:text-blue-800"><i class="fa-regular fa-copy"></i></button>
+                            </div>
+                            <input type="text" id="field_8" oninput="syncSingleRowFromInputs()" placeholder="543212026..." class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none font-mono text-xs text-slate-800">
+                        </div>
+                        <div>
+                            <div class="flex items-center justify-between mb-1">
+                                <label class="block text-xs font-semibold text-slate-500">9. สร้างรถจี้ท้ายจาก CCTV</label>
+                                <button onclick="copySingleField(9)" title="คัดลอกช่องที่ 9" class="text-xs text-blue-600 hover:text-blue-800"><i class="fa-regular fa-copy"></i></button>
+                            </div>
+                            <input type="text" id="field_9" oninput="syncSingleRowFromInputs()" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none text-slate-700">
+                        </div>
+                        <div>
+                            <div class="flex items-center justify-between mb-1">
+                                <label class="block text-xs font-semibold text-slate-500">10. ยิงpostmanเท่านั้น</label>
+                                <button onclick="copySingleField(10)" title="คัดลอกช่องที่ 10" class="text-xs text-blue-600 hover:text-blue-800"><i class="fa-regular fa-copy"></i></button>
+                            </div>
+                            <input type="text" id="field_10" oninput="syncSingleRowFromInputs()" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none text-slate-700">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Action Bar for Current Item -->
+                <div class="mt-4 pt-3 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2">
+                    <div class="text-xs text-slate-500 flex items-center gap-2">
+                        <span id="extraExtractedInfo" class="italic"></span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button onclick="copyCurrentRowTSV(false)" class="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-bold shadow-sm transition flex items-center gap-2">
+                            <i class="fa-solid fa-file-excel text-base"></i> คัดลอกทั้งแถวลง Excel (10 ช่อง)
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Single-Row Table Preview Section (Left to Right 1-10) -->
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+            <div class="p-4 sm:px-6 border-b border-slate-200 flex flex-wrap items-center justify-between gap-4 bg-slate-50/50">
+                <div class="flex items-center gap-3">
+                    <h2 class="font-bold text-slate-800 text-base flex items-center gap-2">
+                        <i class="fa-solid fa-table-columns text-blue-600"></i>
+                        ตารางแสดงผลเรียงจากซ้ายไปขวา (1 - 10) — โหมด 1 รูป ต่อ 1 รายการ
+                    </h2>
+                    <span id="rowStatusBadge" class="px-2.5 py-0.5 text-xs font-bold bg-slate-200 text-slate-700 rounded-full">รอวางรูปภาพ</span>
+                </div>
+
+                <div class="flex flex-wrap items-center gap-2">
+                    <button onclick="copyCurrentRowTSV(false)" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-semibold shadow-sm transition flex items-center gap-2">
+                        <i class="fa-regular fa-copy"></i> คัดลอกข้อมูลแถวนี้ (ไม่เอาหัวตาราง)
+                    </button>
+                    <button onclick="copyCurrentRowTSV(true)" class="px-3 py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-lg text-sm font-medium shadow-sm transition flex items-center gap-1.5">
+                        <i class="fa-solid fa-copy"></i> คัดลอกพร้อมหัวตาราง
+                    </button>
+                </div>
+            </div>
+
+            <!-- Responsive Table -->
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="bg-slate-800 text-white text-xs uppercase tracking-wider">
+                            <th class="py-3 px-3 border-r border-slate-700 min-w-[210px]">
+                                <span class="text-blue-300 font-bold mr-1">1.</span> หมวดทะเบียน
+                            </th>
+                            <th class="py-3 px-3 border-r border-slate-700 min-w-[165px]">
+                                <span class="text-blue-300 font-bold mr-1">2.</span> ตรวจสอบรายการผ่านทาง
+                            </th>
+                            <th class="py-3 px-3 border-r border-slate-700 min-w-[90px]">
+                                <span class="text-blue-300 font-bold mr-1">3.</span> ด่าน
+                            </th>
+                            <th class="py-3 px-3 border-r border-slate-700 min-w-[150px]">
+                                <span class="text-blue-300 font-bold mr-1">4.</span> วัน เวลา
+                            </th>
+                            <th class="py-3 px-3 border-r border-slate-700 min-w-[205px] bg-amber-950/60">
+                                <span class="text-amber-300 font-bold mr-1">5.</span> =TEXT(F890,"[$-409]mmmm")
+                            </th>
+                            <th class="py-3 px-3 border-r border-slate-700 min-w-[105px]">
+                                <span class="text-blue-300 font-bold mr-1">6.</span> 00 0000 -
+                            </th>
+                            <th class="py-3 px-3 border-r border-slate-700 min-w-[205px]">
+                                <span class="text-blue-300 font-bold mr-1">7.</span> ตรวจสอบการผ่านทางที่ผิดกฎหมาย
+                            </th>
+                            <th class="py-3 px-3 border-r border-slate-700 min-w-[230px]">
+                                <span class="text-blue-300 font-bold mr-1">8.</span> Ref Trip Id
+                            </th>
+                            <th class="py-3 px-3 border-r border-slate-700 min-w-[165px]">
+                                <span class="text-blue-300 font-bold mr-1">9.</span> สร้างรถจี้ท้ายจาก CCTV
+                            </th>
+                            <th class="py-3 px-3 min-w-[135px]">
+                                <span class="text-blue-300 font-bold mr-1">10.</span> ยิงpostmanเท่านั้น
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody" class="divide-y divide-slate-200 text-sm">
+                        <!-- Single Row Rendered Here -->
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Empty State -->
+            <div id="emptyState" class="p-10 text-center text-slate-400">
+                <i class="fa-solid fa-image text-4xl mb-3 text-slate-300"></i>
+                <p class="font-semibold text-slate-600">กรุณาวางรูปภาพ (<kbd class="px-1.5 py-0.5 bg-slate-100 border rounded text-blue-600 font-mono text-xs">Ctrl + V</kbd>) เพื่อแกะข้อมูลรายการใหม่</p>
+                <p class="text-xs mt-1">ระบบจะแสดงเฉพาะรายการของรูปที่วางล่าสุดเท่านั้น (1 รูป = 1 รายการ)</p>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Settings Modal -->
+    <div id="settingsModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs hidden items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-2xl max-w-lg w-full shadow-xl border border-slate-200 overflow-hidden">
+            <div class="px-6 py-4 bg-slate-900 text-white flex justify-between items-center">
+                <h3 class="font-bold text-base flex items-center gap-2">
+                    <i class="fa-solid fa-sliders text-amber-400"></i> ตั้งค่ารูปแบบการแยกข้อมูลแต่ละช่อง
+                </h3>
+                <button onclick="closeSettingsModal()" class="text-slate-400 hover:text-white">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+            <div class="p-6 space-y-4 text-sm max-h-[80vh] overflow-y-auto">
+                <div>
+                    <label class="block font-semibold text-slate-700 mb-1">รูปแบบช่องที่ 1 (หมวดทะเบียน):</label>
+                    <select id="settingPlateFormat" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="plate_number_province">หมวดอักษร + เลขทะเบียน + จังหวัด (เช่น 3ฒล 2850 กรุงเทพมหานคร)</option>
+                        <option value="plate_number">หมวดอักษร + เลขทะเบียน (เช่น 3ฒล 2850)</option>
+                        <option value="plate_only">เฉพาะหมวดอักษรอย่างเดียว (เช่น 3ฒล)</option>
+                        <option value="plate_hyphen_number">หมวดอักษร-เลขทะเบียน ติดกัน (เช่น 3ฒล-2850)</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block font-semibold text-slate-700 mb-1">รูปแบบช่องที่ 4 (วัน เวลา):</label>
+                    <select id="settingDateTimeFormat" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="full_sec">วันที่ + ชั่วโมง:นาที:วินาที (เช่น 29/10/2026 00:07:59)</option>
+                        <option value="no_sec">วันที่ + ชั่วโมง:นาที (เช่น 29/10/2026 00:07)</option>
+                    </select>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-slate-100">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">ค่าเริ่มต้นช่องที่ 2:</label>
+                        <input type="text" id="defaultCol2" value="ตรวจสอบรายการผ่านทาง" class="w-full px-3 py-1.5 border border-slate-300 rounded-lg text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-amber-700 mb-1">ค่าเริ่มต้นช่องที่ 5 (สูตร TEXT):</label>
+                        <input type="text" id="defaultCol5" value='=TEXT(F890,"[$-409]mmmm")' class="w-full px-3 py-1.5 border border-amber-300 bg-amber-50/40 rounded-lg text-sm font-mono">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">ค่าเริ่มต้นช่องที่ 6:</label>
+                        <input type="text" id="defaultCol6" value="00 0000 -" class="w-full px-3 py-1.5 border border-slate-300 rounded-lg text-sm font-mono">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">ค่าเริ่มต้นช่องที่ 7:</label>
+                        <input type="text" id="defaultCol7" value="ตรวจสอบการผ่านทางที่ผิดกฎหมาย" class="w-full px-3 py-1.5 border border-slate-300 rounded-lg text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">ค่าเริ่มต้นช่องที่ 9:</label>
+                        <input type="text" id="defaultCol9" value="สร้างรถจี้ท้ายจาก CCTV" class="w-full px-3 py-1.5 border border-slate-300 rounded-lg text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">ค่าเริ่มต้นช่องที่ 10:</label>
+                        <input type="text" id="defaultCol10" value="ยิงpostmanเท่านั้น" class="w-full px-3 py-1.5 border border-slate-300 rounded-lg text-sm">
+                    </div>
+                </div>
+            </div>
+            <div class="px-6 py-3 bg-slate-50 border-t border-slate-200 flex justify-end gap-2">
+                <button onclick="saveSettings()" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-semibold transition">
+                    บันทึกการตั้งค่า
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="fixed bottom-5 right-5 transform translate-y-20 opacity-0 transition-all duration-300 z-50 bg-slate-900 text-white px-4 py-3 rounded-xl shadow-lg flex items-center gap-3 border border-slate-700">
+        <i id="toastIcon" class="fa-solid fa-circle-check text-emerald-400 text-lg"></i>
+        <span id="toastMsg" class="text-sm font-medium">คัดลอกข้อมูลสำเร็จ!</span>
+    </div>
+
+    <script>
+        // --- Hidden Background API Key Configuration (No UI Exposure) ---
+        const EMBEDDED_API_KEY = "AQ.Ab8RN6JJMGu0Qg8OfpOQ48KCep7VvDaAjTxSUKIMaAh19cJpyw";
+        const FALLBACK_MODELS = [
+            "gemini-2.5-flash",
+            "gemini-3-flash-preview",
+            "gemini-2.0-flash"
+        ];
+
+        // --- State Management (Single Row per Image Paste) ---
+        let currentRecord = null; // Holds only the current active record { cols: [...10], raw: {...} }
+
+        let appSettings = {
+            plateFormat: 'plate_number_province', // 'plate_number_province', 'plate_number', 'plate_only', 'plate_hyphen_number'
+            dateTimeFormat: 'full_sec',  // 'full_sec', 'no_sec'
+            col2: 'ตรวจสอบรายการผ่านทาง',
+            col5: '=TEXT(F890,"[$-409]mmmm")',
+            col6: '00 0000 -',
+            col7: 'ตรวจสอบการผ่านทางที่ผิดกฎหมาย',
+            col9: 'สร้างรถจี้ท้ายจาก CCTV',
+            col10: 'ยิงpostmanเท่านั้น'
+        };
+
+        // Plaza Name Mapping (Thai to Code)
+        const PLAZA_MAP = {
+            'ทับช้าง1': 'TC1',
+            'ทับช้าง2': 'TC2',
+            'ธัญบุรี1': 'TY1',
+            'ธัญบุรี2': 'TY2'
+        };
+
+        function mapPlazaToCode(plazaName) {
+            if (!plazaName) return '';
+            const rawTrimmed = plazaName.trim();
+            const normalized = rawTrimmed.replace(/\s+/g, '');
+
+            if (PLAZA_MAP[normalized]) {
+                return PLAZA_MAP[normalized];
+            }
+            if (normalized.includes('ทับช้าง1') || rawTrimmed.toUpperCase() === 'TC1') return 'TC1';
+            if (normalized.includes('ทับช้าง2') || rawTrimmed.toUpperCase() === 'TC2') return 'TC2';
+            if (normalized.includes('ธัญบุรี1') || rawTrimmed.toUpperCase() === 'TY1') return 'TY1';
+            if (normalized.includes('ธัญบุรี2') || rawTrimmed.toUpperCase() === 'TY2') return 'TY2';
+
+            return rawTrimmed;
+        }
+
+        // Initialize Default Inputs & Stored API Key on Load
+        window.onload = function() {
+            initApiKeyAndModel();
+            resetEditorInputs();
+            setupDragAndDrop();
+            // Load sample data from user's attached screenshot on start
+            loadDemoData(true);
+        };
+
+        function initApiKeyAndModel() {
+            try {
+                const savedKey = localStorage.getItem(STORAGE_KEY_API);
+                const keyToUse = (savedKey && savedKey.trim()) ? savedKey.trim() : DEFAULT_USER_API_KEY;
+                document.getElementById('apiKeyInput').value = keyToUse;
+
+                const savedModel = localStorage.getItem(STORAGE_KEY_MODEL);
+                if (savedModel) {
+                    const modelSelect = document.getElementById('modelSelect');
+                    if ([...modelSelect.options].some(o => o.value === savedModel)) {
+                        modelSelect.value = savedModel;
+                    }
+                }
+            } catch (e) {
+                document.getElementById('apiKeyInput').value = DEFAULT_USER_API_KEY;
+            }
+            updateApiKeyStatusBadge();
+        }
+
+        function getActiveApiKey() {
+            const val = (document.getElementById('apiKeyInput')?.value || '').trim();
+            return val || DEFAULT_USER_API_KEY;
+        }
+
+        function handleApiKeyChange() {
+            updateApiKeyStatusBadge();
+            try {
+                const val = document.getElementById('apiKeyInput').value.trim();
+                if (val) {
+                    localStorage.setItem(STORAGE_KEY_API, val);
+                }
+            } catch (e) {}
+        }
+
+        function saveApiKeyManual() {
+            const val = document.getElementById('apiKeyInput').value.trim();
+            if (!val) {
+                showToast('กรุณากรอกรหัส API Key ก่อนบันทึก', 'error');
+                return;
+            }
+            try {
+                localStorage.setItem(STORAGE_KEY_API, val);
+            } catch (e) {}
+            updateApiKeyStatusBadge();
+            showToast('บันทึก API Key ไว้ในเบราว์เซอร์เรียบร้อยแล้ว', 'success');
+        }
+
+        function resetDefaultApiKey() {
+            document.getElementById('apiKeyInput').value = DEFAULT_USER_API_KEY;
+            try {
+                localStorage.setItem(STORAGE_KEY_API, DEFAULT_USER_API_KEY);
+            } catch (e) {}
+            updateApiKeyStatusBadge();
+            showToast('คืนค่า API Key เริ่มต้น (AQ...) เรียบร้อยแล้ว', 'info');
+        }
+
+        function toggleApiKeyVisibility() {
+            const input = document.getElementById('apiKeyInput');
+            const icon = document.getElementById('eyeIcon');
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.className = 'fa-regular fa-eye-slash text-blue-400';
+            } else {
+                input.type = 'password';
+                icon.className = 'fa-regular fa-eye';
+            }
+        }
+
+        function handleModelChange() {
+            const selected = document.getElementById('modelSelect').value;
+            try {
+                localStorage.setItem(STORAGE_KEY_MODEL, selected);
+            } catch (e) {}
+            showToast(`เปลี่ยนโมเดลเป็น ${selected} แล้ว`, 'info');
+        }
+
+        function updateApiKeyStatusBadge() {
+            const badge = document.getElementById('apiKeyStatusBadge');
+            const key = (document.getElementById('apiKeyInput')?.value || '').trim();
+            if (!key) {
+                badge.className = 'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md font-semibold bg-rose-500/20 text-rose-300 border border-rose-500/30';
+                badge.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i> ยังไม่ได้ใส่ API Key';
+            } else if (key.startsWith('AQ.')) {
+                badge.className = 'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30';
+                badge.innerHTML = '<i class="fa-solid fa-circle-check"></i> คีย์ AQ. พร้อมใช้งาน';
+            } else {
+                badge.className = 'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md font-semibold bg-blue-500/20 text-blue-300 border border-blue-500/30';
+                badge.innerHTML = '<i class="fa-solid fa-key"></i> API Key พร้อมใช้งาน';
+            }
+        }
+
+        // Download Standalone HTML File with embedded API key
+        function downloadStandaloneHtml() {
+            const currentKey = getActiveApiKey();
+            // Ensure input attribute has the current key before serializing HTML
+            const keyInput = document.getElementById('apiKeyInput');
+            if (keyInput) {
+                keyInput.setAttribute('value', currentKey);
+            }
+            const htmlContent = '<!DOCTYPE html>\n' + document.documentElement.outerHTML;
+            const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'Toll_OCR_Extractor.html';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            showToast('ดาวน์โหลดไฟล์ Toll_OCR_Extractor.html สำเร็จ! นำไปเปิดใช้งานข้างนอกได้เลย', 'success');
+        }
+
+        // --- Paste & Drag-Drop Handlers ---
+        window.addEventListener('paste', function(e) {
+            const items = (e.clipboardData || e.originalEvent.clipboardData).items;
+            for (let index in items) {
+                const item = items[index];
+                if (item.kind === 'file' && item.type.startsWith('image/')) {
+                    const blob = item.getAsFile();
+                    processImageFile(blob);
+                    e.preventDefault();
+                    break;
+                }
+            }
+        });
+
+        function setupDragAndDrop() {
+            const dropZone = document.getElementById('dropZone');
+            dropZone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                dropZone.classList.add('dragover');
+            });
+            dropZone.addEventListener('dragleave', () => {
+                dropZone.classList.remove('dragover');
+            });
+            dropZone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                dropZone.classList.remove('dragover');
+                if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+                    processImageFile(e.dataTransfer.files[0]);
+                }
+            });
+        }
+
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (file) {
+                processImageFile(file);
+            }
+            // Reset input so selecting the same file again still triggers onchange
+            event.target.value = '';
+        }
+
+        // --- Image Processing & Gemini Vision OCR ---
+        function processImageFile(file) {
+            if (!file.type.startsWith('image/')) {
+                showToast('กรุณาเลือกไฟล์รูปภาพเท่านั้น', 'error');
+                return;
+            }
+
+            // Clear old record immediately so each image is strictly 1 fresh transaction
+            currentRecord = null;
+            resetEditorInputs();
+            renderTable();
+
+            const reader = new FileReader();
+            reader.onload = async function(event) {
+                const dataUrl = event.target.result;
+                // Show preview
+                document.getElementById('uploadPrompt').classList.add('hidden');
+                document.getElementById('previewContainer').classList.remove('hidden');
+                document.getElementById('imagePreview').src = dataUrl;
+
+                const base64Data = dataUrl.split(',')[1];
+                const mimeType = file.type;
+
+                await extractDataFromImageAPI(base64Data, mimeType);
+            };
+            reader.readAsDataURL(file);
+        }
+
+        async function extractDataFromImageAPI(base64ImageData, mimeType) {
+            const loadingOverlay = document.getElementById('loadingOverlay');
+            const rawBadge = document.getElementById('rawBadge');
+            loadingOverlay.classList.remove('hidden');
+            rawBadge.textContent = 'กำลังวิเคราะห์ภาพใหม่...';
+            rawBadge.className = 'text-xs px-2.5 py-1 bg-amber-100 text-amber-800 rounded-md font-medium';
+
+            const promptText = `คุณคือระบบ OCR ความแม่นยำสูงสำหรับอ่านหน้าจอระบบตรวจสอบรายการผ่านทาง (ป้ายปกติ / ด่านเก็บเงิน)
+กรุณาอ่านข้อมูลตัวอักษรจากภาพที่แนบมานี้ แล้วแยกข้อมูลออกมาเป็น JSON ตามโครงสร้างดังนี้:
+- platePrefix: หมวดอักษร (เช่น "3ฒล")
+- plateNumber: เลขทะเบียน (เช่น "2850")
+- province: จังหวัด (เช่น "กรุงเทพมหานคร")
+- vehicleClass: Class รถ (เช่น "4 ล้อ")
+- highway: สายทาง (เช่น "ทางหลวงพิเศษหมายเลข 9")
+- plaza: ด่าน (เช่น "ทับช้าง 1", "ทับช้าง 2", "ธัญบุรี 1", "ธัญบุรี 2")
+- lane: ช่องทาง (เช่น "2")
+- refTripId: Ref Trip Id (เช่น "543212026102900075951074921616A")
+- date: วันที่ผ่านทาง (เช่น "29/10/2026")
+- timeHm: ชั่วโมง-นาทีผ่านทาง (เช่น "00:07")
+- seconds: วินาทีเริ่มต้น (เช่น "59")
+- reason: เหตุผลในการสร้างรายการผ่านทางใหม่ (เช่น "อนุมัติจาก CCTV")
+หากช่องไหนไม่มีในภาพ ให้ใส่ค่าว่าง ""`;
+
+            const payload = {
+                contents: [
+                    {
+                        role: "user",
+                        parts: [
+                            { text: promptText },
+                            {
+                                inlineData: {
+                                    mimeType: mimeType || "image/png",
+                                    data: base64ImageData
+                                }
+                            }
+                        ]
+                    }
+                ],
+                generationConfig: {
+                    responseMimeType: "application/json",
+                    responseSchema: {
+                        type: "OBJECT",
+                        properties: {
+                            platePrefix: { type: "STRING" },
+                            plateNumber: { type: "STRING" },
+                            province: { type: "STRING" },
+                            vehicleClass: { type: "STRING" },
+                            highway: { type: "STRING" },
+                            plaza: { type: "STRING" },
+                            lane: { type: "STRING" },
+                            refTripId: { type: "STRING" },
+                            date: { type: "STRING" },
+                            timeHm: { type: "STRING" },
+                            seconds: { type: "STRING" },
+                            reason: { type: "STRING" }
+                        },
+                        propertyOrdering: [
+                            "platePrefix", "plateNumber", "province",
+                            "vehicleClass", "highway", "plaza", "lane",
+                            "refTripId", "date", "timeHm", "seconds", "reason"
+                        ]
+                    }
+                }
+            };
+
+            try {
+                const result = await callGeminiWithModelFallback(payload);
+                const jsonText = result?.candidates?.[0]?.content?.parts?.[0]?.text;
+                if (!jsonText) {
+                    throw new Error("ไม่สามารถอ่านข้อมูลจากภาพได้");
+                }
+
+                const extracted = JSON.parse(jsonText);
+                applyExtractedData(extracted, "แกะรายการใหม่สำเร็จ");
+                showToast('แกะข้อมูลจากภาพเรียบร้อยแล้ว!', 'success');
+            } catch (err) {
+                console.error(err);
+                rawBadge.textContent = 'เกิดข้อผิดพลาดในการอ่านภาพ';
+                rawBadge.className = 'text-xs px-2.5 py-1 bg-rose-100 text-rose-700 rounded-md font-medium';
+                showToast('ไม่สามารถแกะข้อมูลจากภาพได้ กรุณาวางภาพใหม่อีกครั้ง', 'error');
+            } finally {
+                loadingOverlay.classList.add('hidden');
+            }
+        }
+
+        // Model fallback + AQ. key support (Query string + x-goog-api-key header + empty key fallback in Canvas)
+        async function callGeminiWithModelFallback(payload) {
+            const keyCandidates = [EMBEDDED_API_KEY, ""];
+            let lastError = null;
+
+            for (const activeKey of keyCandidates) {
+                for (const modelName of FALLBACK_MODELS) {
+                    const baseUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent`;
+                    const url = activeKey ? `${baseUrl}?key=${encodeURIComponent(activeKey)}` : `${baseUrl}?key=`;
+
+                    const headers = { 'Content-Type': 'application/json' };
+                    if (activeKey) {
+                        headers['x-goog-api-key'] = activeKey;
+                    }
+
+                    try {
+                        const result = await fetchWithBackoff(url, payload, headers, 2);
+                        if (result && result.candidates) {
+                            return result;
+                        }
+                    } catch (err) {
+                        lastError = err;
+                    }
+                }
+            }
+            throw lastError || new Error("All models failed");
+        }
+
+        // Exponential backoff helper
+        async function fetchWithBackoff(url, payload, headers, retries = 2) {
+            let delay = 800;
+            for (let i = 0; i < retries; i++) {
+                try {
+                    const response = await fetch(url, {
+                        method: 'POST',
+                        headers: headers || { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    if (response.ok) {
+                        return await response.json();
+                    }
+                    if (response.status === 400 || response.status === 401 || response.status === 403 || response.status === 404) {
+                        break; // Switch to next model/key immediately on client/auth/model error
+                    }
+                } catch (e) {
+                    // Retry silently
+                }
+                await new Promise(r => setTimeout(r, delay));
+                delay *= 2;
+            }
+            throw new Error("API request failed");
+        }
+
+        // --- Format & Populate Data into the 10 Columns ---
+        function formatExtractedTo10Columns(raw) {
+            const prefix = (raw.platePrefix || '').trim();
+            const number = (raw.plateNumber || '').trim();
+            const province = (raw.province || '').trim();
+
+            // 1. หมวดทะเบียน formatting based on setting
+            let col1 = '';
+            if (appSettings.plateFormat === 'plate_only') {
+                col1 = prefix || `${prefix} ${number}`.trim();
+            } else if (appSettings.plateFormat === 'plate_number') {
+                col1 = [prefix, number].filter(Boolean).join(' ');
+            } else if (appSettings.plateFormat === 'plate_hyphen_number') {
+                col1 = [prefix, number].filter(Boolean).join('-');
+            } else {
+                // Default: หมวดอักษร + เลขทะเบียน + จังหวัด (e.g. 3ฒล 2850 กรุงเทพมหานคร)
+                col1 = [prefix, number, province].filter(Boolean).join(' ');
+            }
+
+            // 2. ตรวจสอบรายการผ่านทาง
+            const col2 = appSettings.col2;
+
+            // 3. ด่าน (แปลงชื่อไทยเป็นตัวย่อ TC1, TC2, TY1, TY2)
+            const col3 = mapPlazaToCode(raw.plaza || '');
+
+            // 4. วัน เวลา
+            const dateStr = (raw.date || '').trim();
+            const timeHmStr = (raw.timeHm || '').trim();
+            const secStr = (raw.seconds || '').trim();
+            let col4 = '';
+            if (appSettings.dateTimeFormat === 'full_sec' && secStr) {
+                const fullTime = timeHmStr ? `${timeHmStr}:${secStr.padStart(2, '0')}` : secStr;
+                col4 = [dateStr, fullTime].filter(Boolean).join(' ');
+            } else {
+                col4 = [dateStr, timeHmStr].filter(Boolean).join(' ');
+            }
+
+            // 5. ช่องแทรกใหม่: =TEXT(F890,"[$-409]mmmm")
+            const col5 = appSettings.col5;
+
+            // 6. 00 0000 -
+            const col6 = appSettings.col6;
+
+            // 7. ตรวจสอบการผ่านทางที่ผิดกฎหมาย
+            const col7 = appSettings.col7;
+
+            // 8. Ref Trip Id
+            const col8 = (raw.refTripId || '').trim();
+
+            // 9. สร้างรถจี้ท้ายจาก CCTV
+            const col9 = appSettings.col9;
+
+            // 10. ยิงpostmanเท่านั้น
+            const col10 = appSettings.col10;
+
+            return {
+                cols: [col1, col2, col3, col4, col5, col6, col7, col8, col9, col10],
+                raw: raw
+            };
+        }
+
+        function applyExtractedData(rawObj, badgeLabel = "แกะสำเร็จ") {
+            const formatted = formatExtractedTo10Columns(rawObj);
+
+            // Populate 10 input fields
+            for (let i = 0; i < 10; i++) {
+                document.getElementById(`field_${i + 1}`).value = formatted.cols[i];
+            }
+
+            // Extra metadata display
+            const extraParts = [];
+            if (rawObj.platePrefix || rawObj.plateNumber) extraParts.push(`หมวด: ${rawObj.platePrefix || '-'} | เลข: ${rawObj.plateNumber || '-'} | จังหวัด: ${rawObj.province || '-'}`);
+            if (rawObj.plaza) extraParts.push(`ด่านในภาพ: ${rawObj.plaza} ➔ ${formatted.cols[2]}`);
+            if (rawObj.highway) extraParts.push(`สายทาง: ${rawObj.highway}`);
+            if (rawObj.lane) extraParts.push(`ช่องทาง: ${rawObj.lane}`);
+            document.getElementById('extraExtractedInfo').textContent = extraParts.join(' • ');
+
+            // Update status badge
+            const rawBadge = document.getElementById('rawBadge');
+            rawBadge.textContent = badgeLabel;
+            rawBadge.className = 'text-xs px-2.5 py-1 bg-emerald-100 text-emerald-800 rounded-md font-semibold';
+
+            // Replace current record (strictly 1 item per image paste)
+            currentRecord = {
+                cols: [...formatted.cols],
+                raw: rawObj
+            };
+            renderTable();
+        }
+
+        // Sync inputs with the single active row
+        function syncSingleRowFromInputs() {
+            const currentCols = [];
+            for (let i = 1; i <= 10; i++) {
+                currentCols.push(document.getElementById(`field_${i}`).value);
+            }
+            if (!currentRecord) {
+                currentRecord = { cols: currentCols, raw: {} };
+            } else {
+                currentRecord.cols = currentCols;
+            }
+            renderTable();
+        }
+
+        function resetEditorInputs() {
+            document.getElementById('field_1').value = '';
+            document.getElementById('field_2').value = appSettings.col2;
+            document.getElementById('field_3').value = '';
+            document.getElementById('field_4').value = '';
+            document.getElementById('field_5').value = appSettings.col5;
+            document.getElementById('field_6').value = appSettings.col6;
+            document.getElementById('field_7').value = appSettings.col7;
+            document.getElementById('field_8').value = '';
+            document.getElementById('field_9').value = appSettings.col9;
+            document.getElementById('field_10').value = appSettings.col10;
+            document.getElementById('extraExtractedInfo').textContent = '';
+        }
+
+        function clearCurrentData() {
+            currentRecord = null;
+            resetEditorInputs();
+            document.getElementById('uploadPrompt').classList.remove('hidden');
+            document.getElementById('previewContainer').classList.add('hidden');
+            document.getElementById('imagePreview').src = '';
+
+            const rawBadge = document.getElementById('rawBadge');
+            rawBadge.textContent = 'รอวางรูปภาพใหม่ (Ctrl+V)...';
+            rawBadge.className = 'text-xs px-2.5 py-1 bg-slate-100 text-slate-600 rounded-md font-medium';
+
+            renderTable();
+            showToast('ล้างข้อมูลแล้ว พร้อมรับรูปภาพใหม่ (กด Ctrl+V ได้เลย)', 'info');
+        }
+
+        // --- Demo Data from User's Attached Image ---
+        function loadDemoData(silent = false) {
+            const sampleRaw = {
+                platePrefix: "3ฒล",
+                plateNumber: "2850",
+                province: "กรุงเทพมหานคร",
+                vehicleClass: "4 ล้อ",
+                highway: "ทางหลวงพิเศษหมายเลข 9",
+                plaza: "ทับช้าง 1",
+                lane: "2",
+                refTripId: "543212026102900075951074921616A",
+                date: "29/10/2026",
+                timeHm: "00:07",
+                seconds: "59",
+                reason: "อนุมัติจาก CCTV"
+            };
+            applyExtractedData(sampleRaw, "ข้อมูลจากภาพตัวอย่าง (1 รายการ)");
+            if (!silent) {
+                showToast('โหลดข้อมูลจากภาพตัวอย่างเรียบร้อยแล้ว', 'success');
+            }
+        }
+
+        // --- Single-Row Table Rendering & Editing ---
+        function renderTable() {
+            const tbody = document.getElementById('tableBody');
+            const emptyState = document.getElementById('emptyState');
+            const rowStatusBadge = document.getElementById('rowStatusBadge');
+
+            if (!currentRecord) {
+                tbody.innerHTML = '';
+                emptyState.classList.remove('hidden');
+                rowStatusBadge.textContent = 'ไม่มีข้อมูล (รอวางรูปใหม่)';
+                rowStatusBadge.className = 'px-2.5 py-0.5 text-xs font-bold bg-slate-200 text-slate-700 rounded-full';
+                return;
+            }
+
+            emptyState.classList.add('hidden');
+            rowStatusBadge.textContent = 'พร้อมคัดลอก (1 รายการ)';
+            rowStatusBadge.className = 'px-2.5 py-0.5 text-xs font-bold bg-emerald-100 text-emerald-800 rounded-full';
+
+            tbody.innerHTML = `
+                <tr class="bg-blue-50/40 hover:bg-blue-50/70 transition-colors">
+                    ${currentRecord.cols.map((val, colIdx) => `
+                        <td class="p-1.5 border-r border-slate-200 last:border-r-0">
+                            <input type="text" 
+                                value="${escapeHtml(val)}" 
+                                oninput="updateCell(${colIdx}, this.value)"
+                                class="w-full px-2 py-1.5 rounded border border-transparent hover:border-slate-300 focus:border-blue-500 focus:bg-white bg-transparent focus:outline-none text-slate-800 ${colIdx === 4 || colIdx === 5 || colIdx === 7 ? 'font-mono text-xs' : 'text-sm'} ${colIdx === 2 ? 'font-bold text-blue-700' : ''}"
+                            />
+                        </td>
+                    `).join('')}
+                </tr>
+            `;
+        }
+
+        function updateCell(colIndex, newValue) {
+            if (currentRecord) {
+                currentRecord.cols[colIndex] = newValue;
+                document.getElementById(`field_${colIndex + 1}`).value = newValue;
+            }
+        }
+
+        // --- Clipboard Operations (Tab-Separated for Excel / Google Sheets) ---
+        function copyTextToClipboard(text, successMsg) {
+            const textarea = document.createElement('textarea');
+            textarea.value = text;
+            textarea.style.position = 'fixed';
+            textarea.style.left = '-9999px';
+            document.body.appendChild(textarea);
+            textarea.select();
+            try {
+                document.execCommand('copy');
+                showToast(successMsg || 'คัดลอกลงคลิปบอร์ดแล้ว!', 'success');
+            } catch (err) {
+                showToast('ไม่สามารถคัดลอกได้', 'error');
+            }
+            document.body.removeChild(textarea);
+        }
+
+        function copySingleField(fieldIndex) {
+            const val = document.getElementById(`field_${fieldIndex}`)?.value || '';
+            if (!val) {
+                showToast(`ช่องที่ ${fieldIndex} ยังไม่มีข้อมูล`, 'info');
+                return;
+            }
+            copyTextToClipboard(val, `คัดลอกช่องที่ ${fieldIndex} ("${val}") แล้ว!`);
+        }
+
+        function copyCurrentRowTSV(includeHeaders = false) {
+            const cols = [];
+            for (let i = 1; i <= 10; i++) {
+                cols.push(document.getElementById(`field_${i}`).value);
+            }
+
+            if (!currentRecord && !cols[0] && !cols[7]) {
+                showToast('ยังไม่มีข้อมูล กรุณาวางรูปภาพ (Ctrl+V) ก่อนคัดลอก', 'error');
+                return;
+            }
+
+            const lines = [];
+            if (includeHeaders) {
+                const headers = [
+                    'หมวดทะเบียน',
+                    'ตรวจสอบรายการผ่านทาง',
+                    'ด่าน',
+                    'วัน เวลา',
+                    '=TEXT(F890,"[$-409]mmmm")',
+                    '00 0000 -',
+                    'ตรวจสอบการผ่านทางที่ผิดกฎหมาย',
+                    'Ref Trip Id',
+                    'สร้างรถจี้ท้ายจาก CCTV',
+                    'ยิงpostmanเท่านั้น'
+                ];
+                lines.push(headers.join('\t'));
+            }
+
+            lines.push(cols.join('\t'));
+            copyTextToClipboard(lines.join('\n'), 'คัดลอกทั้ง 10 ช่องแล้ว! นำไปกด Ctrl+V ใน Excel ได้เลย');
+        }
+
+        function copySingleField(fieldIndex) {
+            const val = document.getElementById(`field_${fieldIndex}`).value;
+            if (!val) {
+                showToast(`ช่องที่ ${fieldIndex} ยังไม่มีข้อมูล`, 'info');
+                return;
+            }
+            copyTextToClipboard(val, `คัดลอกช่องที่ ${fieldIndex} (${val}) แล้ว!`);
+        }
+
+        function downloadStandaloneHTML() {
+            const htmlContent = '<!DOCTYPE html>\n' + document.documentElement.outerHTML;
+            const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'Toll_OCR_Extractor.html';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            showToast('ดาวน์โหลดไฟล์ Toll_OCR_Extractor.html เรียบร้อยแล้ว!', 'success');
+        }
+
+        // --- Settings Modal ---
+        function openSettingsModal() {
+            document.getElementById('settingPlateFormat').value = appSettings.plateFormat;
+            document.getElementById('settingDateTimeFormat').value = appSettings.dateTimeFormat;
+            document.getElementById('defaultCol2').value = appSettings.col2;
+            document.getElementById('defaultCol5').value = appSettings.col5;
+            document.getElementById('defaultCol6').value = appSettings.col6;
+            document.getElementById('defaultCol7').value = appSettings.col7;
+            document.getElementById('defaultCol9').value = appSettings.col9;
+            document.getElementById('defaultCol10').value = appSettings.col10;
+
+            const modal = document.getElementById('settingsModal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function closeSettingsModal() {
+            const modal = document.getElementById('settingsModal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        function saveSettings() {
+            appSettings.plateFormat = document.getElementById('settingPlateFormat').value;
+            appSettings.dateTimeFormat = document.getElementById('settingDateTimeFormat').value;
+            appSettings.col2 = document.getElementById('defaultCol2').value;
+            appSettings.col5 = document.getElementById('defaultCol5').value;
+            appSettings.col6 = document.getElementById('defaultCol6').value;
+            appSettings.col7 = document.getElementById('defaultCol7').value;
+            appSettings.col9 = document.getElementById('defaultCol9').value;
+            appSettings.col10 = document.getElementById('defaultCol10').value;
+
+            if (currentRecord && currentRecord.raw && Object.keys(currentRecord.raw).length > 0) {
+                const updated = formatExtractedTo10Columns(currentRecord.raw);
+                currentRecord.cols = updated.cols;
+                for (let i = 0; i < 10; i++) {
+                    document.getElementById(`field_${i + 1}`).value = updated.cols[i];
+                }
+            } else {
+                resetEditorInputs();
+            }
+
+            renderTable();
+            closeSettingsModal();
+            showToast('บันทึกการตั้งค่าเรียบร้อยแล้ว', 'success');
+        }
+
+        // --- Utilities ---
+        function escapeHtml(str) {
+            if (!str) return '';
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;');
+        }
+
+        let toastTimeout;
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('toast');
+            const toastMsg = document.getElementById('toastMsg');
+            const toastIcon = document.getElementById('toastIcon');
+
+            toastMsg.textContent = message;
+            if (type === 'error') {
+                toastIcon.className = 'fa-solid fa-circle-exclamation text-rose-400 text-lg';
+            } else if (type === 'info') {
+                toastIcon.className = 'fa-solid fa-circle-info text-blue-400 text-lg';
+            } else {
+                toastIcon.className = 'fa-solid fa-circle-check text-emerald-400 text-lg';
+            }
+
+            toast.classList.remove('translate-y-20', 'opacity-0');
+            clearTimeout(toastTimeout);
+            toastTimeout = setTimeout(() => {
+                toast.classList.add('translate-y-20', 'opacity-0');
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
